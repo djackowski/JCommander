@@ -1,4 +1,5 @@
 import javax.swing.*;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
@@ -7,19 +8,23 @@ import java.util.List;
 
 public class TablePopUp extends JPopupMenu {
     private final File[] files;
+    private final String destinationPath;
     private OnTableListChanged onTableListChanged;
     private static File[] filesToCopy;
     private String currentPath;
     private JMenuItem pasteItem;
     private static boolean filesCut;
+    private final Component component;
 
     public interface OnTableListChanged {
         void onTableListChanged(String parentPath);
     }
 
-    public TablePopUp(File[] files, String currentPath) {
+    public TablePopUp(CommanderFrame component, File[] files, String currentPath, String destinationPath) {
         this.files = files;
         this.currentPath = currentPath;
+        this.component = component;
+        this.destinationPath = destinationPath;
         String copyMessage = Resources.getCurrentResources().getString("copy");
         JMenuItem copyItem = new JMenuItem(copyMessage);
         copyItem.addActionListener(new CopyActionListener());
@@ -30,10 +35,17 @@ public class TablePopUp extends JPopupMenu {
         pasteItem = new JMenuItem(pasteMessage);
         pasteItem.addActionListener(new PasteActionListener());
         add(pasteItem);
+        if(filesToCopy == null) {
+            pasteItem.setEnabled(false);
+        }
         String cutMessage = Resources.getCurrentResources().getString("cut");
         JMenuItem cutItem = new JMenuItem(cutMessage);
         cutItem.addActionListener(new CutActionListener());
-
+        if(files == null) {
+            cutItem.setEnabled(false);
+            deleteItem.setEnabled(false);
+            copyItem.setEnabled(false);
+        }
         add(cutItem);
         add(copyItem);
         add(deleteItem);
@@ -63,9 +75,8 @@ public class TablePopUp extends JPopupMenu {
         @Override
         public void actionPerformed(ActionEvent e) {
             filesToCopy = files;
+            pasteItem.setEnabled(true);
         }
-
-
     }
 
     private class PasteActionListener implements ActionListener {
@@ -74,33 +85,32 @@ public class TablePopUp extends JPopupMenu {
         public void actionPerformed(ActionEvent e) {
             if (filesToCopy == null) return;
             if (filesCut) {
-                pasteFiles();
-                FileList.delete(filesToCopy, false);
-                filesCut = false;
+                new CutFileWorker().execute();
             } else {
-                pasteFiles();
+                new PasteFileWorker().execute();
             }
         }
 
-        private void pasteFiles() {
-            // new CopyFileWorker();
-        }
-
-        private class CopyFileWorker extends SwingWorker<Object, Object> {
+        private class PasteFileWorker extends SwingWorker<Object, Object> {
 
             @Override
             protected Object doInBackground() throws Exception {
-                for (File f : Arrays.asList(filesToCopy)) {
-                    File file = new File(currentPath.concat("\\" + f.getName()));
-                    FileList.copyFolder(f, file);
-                    publish();
+                int dialogButton = JOptionPane.YES_NO_OPTION;
+                String confirmMessage = Resources.getCurrentResources().getString("pasteConfirm");
+                int dialogResult = JOptionPane.showConfirmDialog(null,
+                        confirmMessage, "JCommander", dialogButton);
+                if (dialogResult == JOptionPane.YES_OPTION) {
+                    List<File> files = Arrays.asList(filesToCopy);
+                    for (File f : files) {
+                        int size = files.size();
+                        int currentIndex = files.indexOf(f);
+                        int remainingFiles = size - currentIndex + 1;
+                        publish(remainingFiles);
+                        File file = new File(destinationPath.concat("\\" + f.getName()));
+                        FileList.copyFolder(f, file);
+                    }
                 }
                 return null;
-            }
-
-            @Override
-            protected void process(List<Object> chunks) {
-                super.process(chunks);
             }
 
             @Override
@@ -108,6 +118,38 @@ public class TablePopUp extends JPopupMenu {
                 super.done();
                 onTableListChanged.onTableListChanged(currentPath);
                 pasteItem.setEnabled(false);
+                filesToCopy = null;
+            }
+        }
+        private class CutFileWorker extends SwingWorker<Integer, Integer> {
+
+            @Override
+            protected Integer doInBackground() throws Exception {
+                List<File> files = Arrays.asList(filesToCopy);
+                for (File f : files) {
+                    int size = files.size();
+                    int currentIndex = files.indexOf(f);
+                    int remainingFiles = size - currentIndex + 1;
+                    publish(remainingFiles);
+                    File file = new File(destinationPath.concat("\\" + f.getName()));
+                    FileList.copyFolder(f, file);
+                }
+                return null;
+            }
+
+            @Override
+            protected void process(List<Integer> chunks) {
+                super.process(chunks);
+                System.out.println(chunks.size() - 1);
+            }
+
+            @Override
+            protected void done() {
+                super.done();
+                onTableListChanged.onTableListChanged(currentPath);
+                pasteItem.setEnabled(false);
+                FileList.delete(filesToCopy, false);
+                filesCut = false;
                 filesToCopy = null;
             }
         }
@@ -119,6 +161,7 @@ public class TablePopUp extends JPopupMenu {
         public void actionPerformed(ActionEvent e) {
             filesToCopy = files;
             filesCut = true;
+            pasteItem.setEnabled(true);
         }
     }
 }

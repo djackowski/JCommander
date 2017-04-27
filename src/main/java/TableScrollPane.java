@@ -1,5 +1,4 @@
 import javax.swing.*;
-import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
@@ -19,9 +18,17 @@ public class TableScrollPane extends JScrollPane {
         @Override
         public void mouseReleased(MouseEvent e) {
             super.mouseReleased(e);
+            if (!SwingUtilities.isRightMouseButton(e)) {
+                return;
+            }
+            filesTable.clearSelection();
             File[] filesArray = filesTable.getFilesArray();
             String currentPath = filesTable.getCurrentPath();
-            TablePopUp popup = new TablePopUp(filesArray, currentPath);
+           /* if(filesArray == null) {
+                currentPath = new File(currentPath).getParent();
+            }*/
+            String destinationPath = filesTable.getDestinationPath();
+            TablePopUp popup = new TablePopUp(filesTable.getCommanderFrame(), filesArray, currentPath, destinationPath);
             popup.setOnTableListChanged(this);
             popup.show(e.getComponent(), e.getX(), e.getY());
 

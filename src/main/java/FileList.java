@@ -10,7 +10,8 @@ public class FileList {
 
     public File[] getFiles(String root) {
         File file = new File(root);
-        return file.listFiles();
+        File[] files = file.listFiles();
+        return files;
     }
 
     File[] getRoots() {
@@ -34,7 +35,7 @@ public class FileList {
 
 
     public static String delete(File[] files, boolean showDialog) {
-        if(showDialog) {
+        if (showDialog) {
             int dialogButton = JOptionPane.YES_NO_OPTION;
             String confirmMessage = Resources.getCurrentResources().getString("deleteConfirm");
             int dialogResult = JOptionPane.showConfirmDialog(null,
@@ -66,7 +67,14 @@ public class FileList {
 
     public static void copyFolder(File src, File dest)
             throws IOException {
+        if (src.equals(dest)) {
+            System.out.println("File exists!");
+            return;
+        }
+            copyFiles(src, dest);
+    }
 
+    private static void copyFiles(File src, File dest) throws IOException {
         if (src.isDirectory()) {
             if (!dest.exists()) {
                 dest.mkdir();

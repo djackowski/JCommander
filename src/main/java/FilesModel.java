@@ -6,8 +6,8 @@ import java.util.Arrays;
 import java.util.List;
 
 public class FilesModel extends AbstractTableModel {
-    private String[] columnNames = {Resources.getCurrentResources().getString("name")
-            , Resources.getCurrentResources().getString("size"),
+    private String[] columnNames = {Resources.getCurrentResources().getString("name"),
+            Resources.getCurrentResources().getString("size"),
             Resources.getCurrentResources().getString("date")};
     private List<File> fileList;
 

@@ -18,19 +18,23 @@ public class FilesTable extends JTable{
     private String rootPath;
     private final JTableMouseAdapter jTableMouseAdapter;
     private File[] filesArray;
+    private CommanderFrame commanderFrame;
+    private String destinationPath;
 
 
     public File[] getFilesArray() {
         return filesArray;
     }
 
-    public FilesTable(String rootPath) {
+    public FilesTable(CommanderFrame commanderFrame, String rootPath) {
         this.rootPath = rootPath;
+        this.commanderFrame = commanderFrame;
+        this.currentPath = rootPath;
+        destinationPath = currentPath;
         fileList = new FileList();
         files = Arrays.asList(fileList.getFiles(rootPath));
         filesModel = new FilesModel(files);
         setModel(filesModel);
-
         setAutoCreateRowSorter(true);
         getColumnModel().setSelectionModel(new TableListSelectionModel());
         getSelectionModel().addListSelectionListener(new RowColumnListSelectionListener());
@@ -42,6 +46,10 @@ public class FilesTable extends JTable{
 
     }
 
+    public CommanderFrame getCommanderFrame() {
+        return commanderFrame;
+    }
+
     public JTableMouseAdapter getTableMouseAdapter() {
         return jTableMouseAdapter;
     }
@@ -50,10 +58,20 @@ public class FilesTable extends JTable{
         return currentPath;
     }
 
+    @Override
+    public void clearSelection() {
+        super.clearSelection();
+        destinationPath = currentPath;
+    }
+
     public void changeLocal() {
         getColumnModel().getColumn(0).setHeaderValue(Resources.getCurrentResources().getString("name"));
         getColumnModel().getColumn(1).setHeaderValue(Resources.getCurrentResources().getString("size"));
         getColumnModel().getColumn(2).setHeaderValue(Resources.getCurrentResources().getString("date"));
+    }
+
+    public String getDestinationPath() {
+        return destinationPath;
     }
 
     public class JTableMouseAdapter extends MouseAdapter implements TablePopUp.OnTableListChanged {
@@ -84,7 +102,7 @@ public class FilesTable extends JTable{
                 System.out.println("Selected Rows: " + Arrays.toString(rows));
 
                 File[] files = filesModel.getFileList(rows);
-                TablePopUp popup = new TablePopUp(files, currentPath);
+                TablePopUp popup = new TablePopUp(commanderFrame, files, currentPath, destinationPath);
                 popup.setOnTableListChanged(this);
                 popup.show(e.getComponent(), e.getX(), e.getY());
             }
@@ -94,7 +112,10 @@ public class FilesTable extends JTable{
             Point p = me.getPoint();
             int selectedRow = rowAtPoint(p);
             File f = filesModel.getFile(selectedRow);
-            currentPath = f.getPath();
+            if(!f.isFile()) {
+                destinationPath = f.getPath();
+            }
+            //currentPath = f.getPath();
             if (SwingUtilities.isRightMouseButton(me)) {
                 if (!getSelectionModel().isSelectedIndex(selectedRow)) {
                     getSelectionModel().addSelectionInterval(selectedRow, selectedRow);
@@ -105,7 +126,6 @@ public class FilesTable extends JTable{
                     if (selectedRow < 0) return;
 
                     File clickedFile = filesModel.getFile(selectedRow);
-//                    currentPath = clickedFile.getPath();
                     if (clickedFile.isFile()) {
                         try {
                             Desktop.getDesktop().open(clickedFile);
@@ -115,6 +135,8 @@ public class FilesTable extends JTable{
                     } else {
                         List<File> file = filesModel.getFileList(selectedRow);
                         parentPath = clickedFile.getParent();
+                        currentPath = clickedFile.getPath();
+                        destinationPath = currentPath;
                         filesModel.setTableData(file);
                     }
                 }
@@ -124,22 +146,26 @@ public class FilesTable extends JTable{
 
 
     public void changeRoot() {
+        if(parentPath == null) return;
         this.changeRoot(parentPath);
         File file = new File(parentPath);
         parentPath = file.getParent();
         currentPath = file.getPath();
+        destinationPath = currentPath;
 
     }
 
     public void changeRoot(String rootPath) {
+        if(rootPath == null) return;
         File[] files = fileList.getFiles(rootPath);
         if (files == null) {
-            showNoMountedWarning();
+           // showNoMountedWarning();
             return;
         }
         this.files = Arrays.asList(files);
         filesModel.setTableData(this.files);
         currentPath = rootPath;
+        destinationPath = currentPath;
     }
 
     private void showNoMountedWarning() {

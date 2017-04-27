@@ -1,7 +1,5 @@
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.io.IOException;
 import java.util.Locale;
@@ -20,21 +18,20 @@ public class CommanderFrame extends JFrame implements ContextChangeListener, Cha
     private final FilesPanel firstPanel;
     private final FilesPanel secondPanel;
 
+
     public CommanderFrame() throws IOException {
         context = new Context("Resources");
         context.addContextChangeListener(this);
         container = getContentPane();
-        setSize(300, 300);
-        setLocation(50, 50);
         setLayout(new BorderLayout());
-        firstPanel = new FilesPanel();
+        firstPanel = new FilesPanel(this);
         container.add(firstPanel, WEST);
-        secondPanel = new FilesPanel();
+        secondPanel = new FilesPanel(this);
         container.add(secondPanel, EAST);
 
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         setTitle("JCommander");
-        setSize(800, 600);
+        setSize(1200, 800);
         setVisible(true);
         JMenuBar menuBar = new JMenuBar();
 
@@ -53,27 +50,18 @@ public class CommanderFrame extends JFrame implements ContextChangeListener, Cha
         String englishLanguage = Resources.getCurrentResources().getString("english");
         english = new JMenuItem(englishLanguage);
         submenu.add(english);
-        english.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                context.setLocale(new Locale("en"));
-            }
-        });
+        english.addActionListener(e -> context.setLocale(new Locale("en")));
         String polishLanguage = Resources.getCurrentResources().getString("polish");
         polish = new JMenuItem(polishLanguage);
         submenu.add(polish);
-        polish.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                context.setLocale(new Locale("pl"));
-            }
-        });
+        polish.addActionListener(e -> context.setLocale(new Locale("pl")));
         menu.add(submenu);
 
         setJMenuBar(menuBar);
 
 
     }
+
 
     @Override
     public void contextChanged() {
